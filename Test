@@ -1,0 +1,58 @@
+import pygame
+
+SIZE = 700
+ROWS, COLS = 7, 7
+CELL_SIZE = SIZE // COLS
+WHITE, BLACK, CYAN = (255, 255, 255), (0, 0, 0), (0, 120, 255)
+
+pygame.init()
+clock = pygame.time.Clock()
+player = pygame.Rect(SIZE // 2, SIZE // 2, 50, 50)
+speed = 15
+screen = pygame.display.set_mode((SIZE, SIZE))
+pygame.display.set_caption("7x7 Grid Board")
+selected = set()
+
+def draw():
+    screen.fill(CYAN)
+    for x in range(0, SIZE, CELL_SIZE):
+        for y in range(0, SIZE, CELL_SIZE):
+            rect = (x, y, CELL_SIZE, CELL_SIZE)
+            if (x // CELL_SIZE, y // CELL_SIZE) in selected:
+                pygame.draw.rect(screen, BLUE, rect)
+            pygame.draw.rect(screen, BLACK, rect, 2)
+    player.x = max(0, min(SIZE - player.width, player.x))
+    player.y = max(0, min(SIZE - player.height, player.y))
+    keys = pygame.key.get_pressed()
+    pygame.draw.rect(screen, BLACK, player)
+    if keys[pygame.K_a]:
+        player.x -= speed
+    if keys[pygame.K_d]:
+        player.x += speed
+    if keys[pygame.K_w]:
+        player.y -= speed
+    if keys[pygame.K_s]:
+        player.y += speed
+    pygame.draw.rect(screen, BLACK, player)
+    clock.tick(60)
+    pygame.display.flip()
+
+def main():
+    running = True
+    pygame.draw.rect(screen, BLACK, player)
+    clock.tick(60)
+    while running:
+        draw()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                cell = (x // CELL_SIZE, y // CELL_SIZE)
+                selected.discard(cell) if cell in selected else selected.add(cell)
+        
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
+
