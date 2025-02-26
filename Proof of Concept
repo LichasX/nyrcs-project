@@ -1,0 +1,101 @@
+import pygame
+
+# Game settings
+SIZE = 700
+ROWS, COLS = 7, 7
+CELL_SIZE = SIZE // COLS
+
+# Colors
+WHITE, BLACK, CYAN, RED, BLUE, ORANGE = (255, 255, 255), (0, 0, 0), (0, 120, 255), (255, 0, 0), (0, 0, 255), (255, 165, 0)
+
+pygame.init()
+screen = pygame.display.set_mode((SIZE, SIZE))
+pygame.display.set_caption("7x7 Grid Board")
+clock = pygame.time.Clock()
+
+# Player and enemy positions in grid coordinates
+player_pos = [3, 3]  # Start in center
+enemy_pos = [0, 0]   # Enemy starts in top-left
+
+selected = set()  # Stores blue clicked cells
+visited = set()   # Stores orange visited cells
+
+# Timer for enemy movement (0.7 seconds = 700 milliseconds)
+ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
+pygame.time.set_timer(ENEMY_MOVE_EVENT, 700)
+
+def draw():
+    screen.fill(CYAN)
+
+    # Draw grid
+    for x in range(0, SIZE, CELL_SIZE):
+        for y in range(0, SIZE, CELL_SIZE):
+            cell_coords = (x // CELL_SIZE, y // CELL_SIZE)
+            rect = (x, y, CELL_SIZE, CELL_SIZE)
+
+            if cell_coords in visited:
+                pygame.draw.rect(screen, ORANGE, rect)  # Mark visited cells orange
+            elif cell_coords in selected:
+                pygame.draw.rect(screen, BLUE, rect)  # Mark clicked cells blue
+            
+            pygame.draw.rect(screen, BLACK, rect, 2)
+
+    # Draw player
+    pygame.draw.rect(screen, BLACK, (player_pos[0] * CELL_SIZE, player_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    # Draw enemy
+    pygame.draw.rect(screen, RED, (enemy_pos[0] * CELL_SIZE, enemy_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    pygame.display.flip()
+
+def move_enemy():
+    """Move the enemy one step closer to the player every 0.7 seconds."""
+    if enemy_pos[0] < player_pos[0]:  # Move right
+        enemy_pos[0] += 1
+    elif enemy_pos[0] > player_pos[0]:  # Move left
+        enemy_pos[0] -= 1
+    elif enemy_pos[1] < player_pos[1]:  # Move down
+        enemy_pos[1] += 1
+    elif enemy_pos[1] > player_pos[1]:  # Move up
+        enemy_pos[1] -= 1
+
+def main():
+    running = True
+    while running:
+        draw()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                moved = False  # Track if player moved
+                if event.key == pygame.K_a and player_pos[0] > 0:
+                    player_pos[0] -= 1
+                    moved = True
+                elif event.key == pygame.K_d and player_pos[0] < COLS - 1:
+                    player_pos[0] += 1
+                    moved = True
+                elif event.key == pygame.K_w and player_pos[1] > 0:
+                    player_pos[1] -= 1
+                    moved = True
+                elif event.key == pygame.K_s and player_pos[1] < ROWS - 1:
+                    player_pos[1] += 1
+                    moved = True
+
+                if moved:
+                    visited.add(tuple(player_pos))  # Mark new position as visited (orange)
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                cell = (x // CELL_SIZE, y // CELL_SIZE)
+                selected.discard(cell) if cell in selected else selected.add(cell)
+
+            elif event.type == ENEMY_MOVE_EVENT:
+                move_enemy()  # Enemy moves every 0.7 seconds
+
+        clock.tick(30)  # Keeps game running smoothly
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
+
