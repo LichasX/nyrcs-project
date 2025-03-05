@@ -1,0 +1,138 @@
+import pygame
+
+
+SIZE = 700
+ROWS, COLS = 7, 7
+CELL_SIZE = SIZE // COLS
+
+
+WHITE, BLACK, CYAN, RED, BLUE, ORANGE = (255, 255, 255), (0, 0, 0), (0, 120, 255), (255, 0, 0), (0, 0, 255), (255, 165, 0)
+
+pygame.init()
+screen = pygame.display.set_mode((SIZE, SIZE))
+pygame.display.set_caption("7x7 Grid Board")
+clock = pygame.time.Clock()
+
+
+player_pos = [3, 3]  
+enemy_pos = [0, 0]   
+enemy2_pos = [6, 6] 
+
+selected = set()  
+visited = set()   
+
+
+ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
+pygame.time.set_timer(ENEMY_MOVE_EVENT, 700)
+
+def draw():
+    screen.fill(CYAN)
+
+    
+    for x in range(0, SIZE, CELL_SIZE):
+        for y in range(0, SIZE, CELL_SIZE):
+            cell_coords = (x // CELL_SIZE, y // CELL_SIZE)
+            rect = (x, y, CELL_SIZE, CELL_SIZE)
+
+            if cell_coords in visited:
+                pygame.draw.rect(screen, ORANGE, rect)  
+            elif cell_coords in selected:
+                pygame.draw.rect(screen, BLUE, rect)  
+            
+            pygame.draw.rect(screen, BLACK, rect, 2)
+
+    
+    pygame.draw.rect(screen, BLACK, (player_pos[0] * CELL_SIZE, player_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    
+    pygame.draw.rect(screen, RED, (enemy_pos[0] * CELL_SIZE, enemy_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    
+    pygame.draw.rect(screen, (0, 255, 0), (enemy2_pos[0] * CELL_SIZE, enemy2_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    pygame.display.flip()
+
+def move_enemy():
+    """Move the first enemy one step closer to the player every 0.7 seconds."""
+    if enemy_pos[0] < player_pos[0]:  
+        enemy_pos[0] += 1
+    elif enemy_pos[0] > player_pos[0]:  
+        enemy_pos[0] -= 1
+    elif enemy_pos[1] < player_pos[1]:  
+        enemy_pos[1] += 1
+    elif enemy_pos[1] > player_pos[1]:  
+        enemy_pos[1] -= 1
+
+def move_enemy2():
+    """Move the second enemy (diagonally) one step closer to the player every 0.7 seconds."""
+    if enemy2_pos[0] < player_pos[0] and enemy2_pos[1] < player_pos[1]:  
+        enemy2_pos[0] += 1
+        enemy2_pos[1] += 1
+    elif enemy2_pos[0] > player_pos[0] and enemy2_pos[1] < player_pos[1]:  
+        enemy2_pos[0] -= 1
+        enemy2_pos[1] += 1
+    elif enemy2_pos[0] < player_pos[0] and enemy2_pos[1] > player_pos[1]:  
+        enemy2_pos[0] += 1
+        enemy2_pos[1] -= 1
+    elif enemy2_pos[0] > player_pos[0] and enemy2_pos[1] > player_pos[1]:  
+        enemy2_pos[0] -= 1
+        enemy2_pos[1] -= 1
+
+def check_game_over():
+    """Check if the game should end."""
+    
+    if len(visited) == ROWS * COLS:
+        return True  
+    
+    
+    if player_pos == enemy_pos or player_pos == enemy2_pos:
+        return True  
+
+    return False
+
+def main():
+    running = True
+    while running:
+        draw()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                moved = False  
+                if event.key == pygame.K_a and player_pos[0] > 0:
+                    player_pos[0] -= 1
+                    moved = True
+                elif event.key == pygame.K_d and player_pos[0] < COLS - 1:
+                    player_pos[0] += 1
+                    moved = True
+                elif event.key == pygame.K_w and player_pos[1] > 0:
+                    player_pos[1] -= 1
+                    moved = True
+                elif event.key == pygame.K_s and player_pos[1] < ROWS - 1:
+                    player_pos[1] += 1
+                    moved = True
+
+                if moved:
+                    visited.add(tuple(player_pos)) 
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                cell = (x // CELL_SIZE, y // CELL_SIZE)
+                selected.discard(cell) if cell in selected else selected.add(cell)
+
+            elif event.type == ENEMY_MOVE_EVENT:
+                move_enemy()  
+                move_enemy2()  
+
+        
+        if check_game_over():
+            running = False  
+
+        clock.tick(30)  
+    
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
+
