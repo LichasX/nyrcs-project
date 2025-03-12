@@ -53,7 +53,7 @@ def draw():
     pygame.display.flip()
 
 def move_enemy():
-    """Move the first enemy one step closer to the player every 0.7 seconds."""
+    
     if enemy_pos[0] < player_pos[0]:  
         enemy_pos[0] += 1
     elif enemy_pos[0] > player_pos[0]:  
@@ -64,7 +64,7 @@ def move_enemy():
         enemy_pos[1] -= 1
 
 def move_enemy2():
-    """Move the second enemy (diagonally) one step closer to the player every 0.7 seconds."""
+    
     if enemy2_pos[0] < player_pos[0] and enemy2_pos[1] < player_pos[1]:  
         enemy2_pos[0] += 1
         enemy2_pos[1] += 1
