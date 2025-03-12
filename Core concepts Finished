@@ -75,7 +75,7 @@ def check_game_over():
 
 def display_game_over(message, color):
     screen.fill(BLACK)
-    font = pygame.font.Font("DTM-Mono.otf", 80)  
+    font = pygame.font.Font(None, 80)  
     text = font.render(message, True, color)
     text_rect = text.get_rect(center=(SIZE // 2, SIZE // 2))
     screen.blit(text, text_rect)
