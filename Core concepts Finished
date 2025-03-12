@@ -1,18 +1,15 @@
 import pygame
 
-
 SIZE = 700
 ROWS, COLS = 7, 7
 CELL_SIZE = SIZE // COLS
 
-
-WHITE, BLACK, CYAN, RED, BLUE, ORANGE = (255, 255, 255), (0, 0, 0), (0, 120, 255), (255, 0, 0), (0, 0, 255), (255, 165, 0)
+WHITE, BLACK, CYAN, RED, BLUE, ORANGE, GREEN = (255, 255, 255), (0, 0, 0), (0, 120, 255), (255, 0, 0), (0, 0, 255), (255, 165, 0), (0, 255, 0)
 
 pygame.init()
 screen = pygame.display.set_mode((SIZE, SIZE))
-pygame.display.set_caption("Q bird")
+pygame.display.set_caption("7x7 Grid Board")
 clock = pygame.time.Clock()
-
 
 player_pos = [3, 3]  
 enemy_pos = [0, 0]   
@@ -21,13 +18,11 @@ enemy2_pos = [6, 6]
 selected = set()  
 visited = set()   
 
-
 ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
-pygame.time.set_timer(ENEMY_MOVE_EVENT, 700)
+pygame.time.set_timer(ENEMY_MOVE_EVENT, 500)
 
 def draw():
     screen.fill(CYAN)
-
     
     for x in range(0, SIZE, CELL_SIZE):
         for y in range(0, SIZE, CELL_SIZE):
@@ -41,19 +36,13 @@ def draw():
             
             pygame.draw.rect(screen, BLACK, rect, 2)
 
-    
     pygame.draw.rect(screen, BLACK, (player_pos[0] * CELL_SIZE, player_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-
-    
     pygame.draw.rect(screen, RED, (enemy_pos[0] * CELL_SIZE, enemy_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-
-    
-    pygame.draw.rect(screen, (0, 255, 0), (enemy2_pos[0] * CELL_SIZE, enemy2_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    pygame.draw.rect(screen, GREEN, (enemy2_pos[0] * CELL_SIZE, enemy2_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
     pygame.display.flip()
 
 def move_enemy():
-    
     if enemy_pos[0] < player_pos[0]:  
         enemy_pos[0] += 1
     elif enemy_pos[0] > player_pos[0]:  
@@ -64,7 +53,6 @@ def move_enemy():
         enemy_pos[1] -= 1
 
 def move_enemy2():
-    
     if enemy2_pos[0] < player_pos[0] and enemy2_pos[1] < player_pos[1]:  
         enemy2_pos[0] += 1
         enemy2_pos[1] += 1
@@ -79,16 +67,27 @@ def move_enemy2():
         enemy2_pos[1] -= 1
 
 def check_game_over():
-    
-    
     if len(visited) == ROWS * COLS:
-        return True  
-    
-    
+        return "win"  
     if player_pos == enemy_pos or player_pos == enemy2_pos:
-        return True  
+        return "lose"  
+    return None  
 
-    return False
+def display_game_over(message, color):
+    screen.fill(BLACK)
+    font = pygame.font.Font("DTM-Mono.otf", 80)  
+    text = font.render(message, True, color)
+    text_rect = text.get_rect(center=(SIZE // 2, SIZE // 2))
+    screen.blit(text, text_rect)
+    pygame.display.flip()
+    
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                waiting = False
+            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                waiting = False  
 
 def main():
     running = True
@@ -125,17 +124,17 @@ def main():
                 move_enemy()  
                 move_enemy2()  
 
-        
-        if check_game_over():
-            running = False  
+        game_status = check_game_over()
+        if game_status == "lose":
+            display_game_over("GAME OVER", RED)
+            running = False
+        elif game_status == "win":
+            display_game_over("YOU WIN!", GREEN)
+            running = False
 
         clock.tick(30)  
-    
+
     pygame.quit()
-
-if __name__ == "__main__":
-    main()
-
 
 if __name__ == "__main__":
     main()
