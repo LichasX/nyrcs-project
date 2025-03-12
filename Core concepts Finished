@@ -10,7 +10,7 @@ WHITE, BLACK, CYAN, RED, BLUE, ORANGE = (255, 255, 255), (0, 0, 0), (0, 120, 255
 
 pygame.init()
 screen = pygame.display.set_mode((SIZE, SIZE))
-pygame.display.set_caption("7x7 Grid Board")
+pygame.display.set_caption("Q bird")
 clock = pygame.time.Clock()
 
 
