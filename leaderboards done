@@ -1,0 +1,254 @@
+import pygame
+import random
+import os
+import time
+
+
+ROWS, COLS = 7, 7
+SIZE = 500  
+CELL_SIZE = SIZE // COLS
+
+WHITE, BLACK, CYAN, RED, BLUE, ORANGE, GREEN = (255, 255, 255), (0, 0, 0), (0, 120, 255), (255, 0, 0), (0, 0, 255), (255, 165, 0), (0, 255, 0)
+
+pygame.init()
+screen = pygame.display.set_mode((SIZE, SIZE))
+pygame.display.set_caption("7x7 Grid Board")
+clock = pygame.time.Clock()
+
+player_pos = [3, 3]
+enemy_pos = [0, 0]
+enemy2_pos = [6, 6]
+enemy3_pos = None  
+
+selected = set()
+visited = set()
+
+ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
+pygame.time.set_timer(ENEMY_MOVE_EVENT, 700)
+snake_image = pygame.image.load("snake.png")
+snake_image = pygame.transform.scale(snake_image, (CELL_SIZE, CELL_SIZE))
+
+SCORE_FILE = "leaderboard.txt"
+
+
+def read_leaderboard():
+    if os.path.exists(SCORE_FILE):
+        with open(SCORE_FILE, "r") as f:
+            leaderboard = [line.strip() for line in f.readlines()]
+        return leaderboard
+    return []
+
+
+def write_score(time_taken):
+    leaderboard = read_leaderboard()
+    leaderboard.append(time_taken)
+    leaderboard = sorted(leaderboard, key=lambda x: float(x))  
+    if len(leaderboard) > 5:  
+        leaderboard = leaderboard[:5]
+    with open(SCORE_FILE, "w") as f:
+        for score in leaderboard:
+            f.write(f"{score}\n")
+
+
+def display_leaderboard():
+    leaderboard = read_leaderboard()
+    font = pygame.font.Font(None, 36)
+    title_text = font.render("Leaderboard", True, BLACK)
+    screen.fill(WHITE)
+    screen.blit(title_text, (SIZE // 2 - title_text.get_width() // 2, 20))
+    
+    y_offset = 80
+    for i, score in enumerate(leaderboard):
+        score_text = font.render(f"{i+1}. {score} seconds", True, BLACK)
+        screen.blit(score_text, (SIZE // 2 - score_text.get_width() // 2, y_offset))
+        y_offset += 40
+
+    instructions_text = font.render("Press 'P' to return", True, BLACK)
+    screen.blit(instructions_text, (SIZE // 2 - instructions_text.get_width() // 2, y_offset))
+    pygame.display.flip()
+
+
+def move_enemy():
+    if enemy_pos[0] < player_pos[0]:
+        enemy_pos[0] += 1
+    elif enemy_pos[0] > player_pos[0]:
+        enemy_pos[0] -= 1
+    elif enemy_pos[1] < player_pos[1]:
+        enemy_pos[1] += 1
+    elif enemy_pos[1] > player_pos[1]:
+        enemy_pos[1] -= 1
+
+def move_enemy2():
+    if enemy2_pos[0] < player_pos[0] and enemy2_pos[1] < player_pos[1]:
+        enemy2_pos[0] += 1
+        enemy2_pos[1] += 1
+    elif enemy2_pos[0] > player_pos[0] and enemy2_pos[1] < player_pos[1]:
+        enemy2_pos[0] -= 1
+        enemy2_pos[1] += 1
+    elif enemy2_pos[0] < player_pos[0] and enemy2_pos[1] > player_pos[1]:
+        enemy2_pos[0] += 1
+        enemy2_pos[1] -= 1
+    elif enemy2_pos[0] > player_pos[0] and enemy2_pos[1] > player_pos[1]:
+        enemy2_pos[0] -= 1
+        enemy2_pos[1] -= 1
+
+def move_enemy3():
+    if enemy3_pos[0] < player_pos[0]:
+        enemy3_pos[0] += 1
+    elif enemy3_pos[0] > player_pos[0]:
+        enemy3_pos[0] -= 1
+    if enemy3_pos[1] < player_pos[1]:
+        enemy3_pos[1] += 1
+    elif enemy3_pos[1] > player_pos[1]:
+        enemy3_pos[1] -= 1
+
+def check_game_over():
+    if len(visited) == ROWS * COLS:
+        return "win"  
+    if player_pos == enemy_pos or player_pos == enemy2_pos or (enemy3_pos and player_pos == enemy3_pos):
+        return "lose"
+    return False
+
+def display_game_over(message, color):
+    screen.fill(BLACK)
+    font = pygame.font.Font(None, 80)
+    text = font.render(message, True, color)
+    text_rect = text.get_rect(center=(SIZE // 2, SIZE // 2))
+    screen.blit(text, text_rect)
+    pygame.display.flip()
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                waiting = False
+            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                waiting = False
+
+def draw():
+    screen.fill(CYAN)
+    for x in range(0, SIZE, CELL_SIZE):
+        for y in range(0, SIZE, CELL_SIZE):
+            cell_coords = (x // CELL_SIZE, y // CELL_SIZE)
+            rect = (x, y, CELL_SIZE, CELL_SIZE)
+
+            if cell_coords in visited:
+                pygame.draw.rect(screen, ORANGE, rect)
+            elif cell_coords in selected:
+                pygame.draw.rect(screen, BLUE, rect)
+
+            pygame.draw.rect(screen, BLACK, rect, 2)
+    pygame.draw.rect(screen, BLACK, (player_pos[0] * CELL_SIZE, player_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    screen.blit(snake_image, (enemy_pos[0] * CELL_SIZE, enemy_pos[1] * CELL_SIZE))
+    
+    #pygame.draw.rect(screen, RED, (enemy_pos[0] * CELL_SIZE, enemy_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    pygame.draw.rect(screen, GREEN, (enemy2_pos[0] * CELL_SIZE, enemy2_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    
+    if enemy3_pos:
+        pygame.draw.rect(screen, (255, 255, 0), (enemy3_pos[0] * CELL_SIZE, enemy3_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    pygame.display.flip()
+
+def starting_screen():
+    font = pygame.font.Font(None, 36)
+    title_text = font.render("Select Difficulty", True, BLACK)
+    normal_text = font.render("Normal", True, BLACK)
+    hard_text = font.render("Hard", True, BLACK)
+    
+    running = True
+    while running:
+        screen.fill(WHITE)
+        screen.blit(title_text, (SIZE // 2 - title_text.get_width() // 2, SIZE // 4))
+        screen.blit(normal_text, (SIZE // 2 - normal_text.get_width() // 2, SIZE // 2 - 50))
+        screen.blit(hard_text, (SIZE // 2 - hard_text.get_width() // 2, SIZE // 2 + 50))
+        
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                if SIZE // 2 - normal_text.get_width() // 2 < x < SIZE // 2 + normal_text.get_width() // 2:
+                    if SIZE // 2 - 50 < y < SIZE // 2 + 50:
+                        return 'normal'
+                if SIZE // 2 - hard_text.get_width() // 2 < x < SIZE // 2 + hard_text.get_width() // 2:
+                    if SIZE // 2 + 50 < y < SIZE // 2 + 150:
+                        return 'hard'
+
+    return 'normal'
+
+
+def main():
+    global enemy3_pos
+    difficulty = starting_screen()
+    
+    if difficulty == 'hard':
+        enemy3_pos = [random.randint(0, COLS-1), random.randint(0, ROWS-1)]  
+    
+    start_time = time.time()
+    running = True
+    while running:
+        draw()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                moved = False
+                if event.key == pygame.K_a and player_pos[0] > 0:
+                    player_pos[0] -= 1
+                    moved = True
+                elif event.key == pygame.K_d and player_pos[0] < COLS - 1:
+                    player_pos[0] += 1
+                    moved = True
+                elif event.key == pygame.K_w and player_pos[1] > 0:
+                    player_pos[1] -= 1
+                    moved = True
+                elif event.key == pygame.K_s and player_pos[1] < ROWS - 1:
+                    player_pos[1] += 1
+                    moved = True
+
+                if moved:
+                    visited.add(tuple(player_pos))
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                cell = (x // CELL_SIZE, y // CELL_SIZE)
+                selected.discard(cell) if cell in selected else selected.add(cell)
+
+            elif event.type == ENEMY_MOVE_EVENT:
+                move_enemy()
+                move_enemy2()
+                if difficulty == 'hard' and enemy3_pos:
+                    move_enemy3()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                return starting_screen()
+
+        pygame.display.flip()
+
+        if check_game_over():
+            running = False
+        game_status = check_game_over()
+        if game_status == "lose":
+            display_game_over("GAME OVER", RED)
+        if game_status == "win":
+            
+            time_taken = round(time.time() - start_time, 2)
+            write_score(time_taken)
+            display_game_over(f"YOU WIN! Time: {time_taken} seconds", GREEN)
+            display_leaderboard()
+            waiting_for_p = True
+            while waiting_for_p:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        return
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                        waiting_for_p = False
+
+        clock.tick(30)
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
