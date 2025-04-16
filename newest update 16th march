@@ -225,6 +225,18 @@ def main():
                 elif event.key == pygame.K_s and player_pos[1] < ROWS - 1:
                     player_pos[1] += 1
                     moved = True
+                elif event.key == pygame.K_LEFT and player_pos[0] > 0:
+                    player_pos[0] -= 1
+                    moved = True
+                elif event.key == pygame.K_RIGHT and player_pos[0] < COLS - 1:
+                    player_pos[0] += 1
+                    moved = True
+                elif event.key == pygame.K_UP and player_pos[1] > 0:
+                    player_pos[1] -= 1
+                    moved = True
+                elif event.key == pygame.K_DOWN and player_pos[1] < ROWS - 1:
+                    player_pos[1] += 1
+                    moved = True
 
                 if moved:
                     visited.add(tuple(player_pos))
