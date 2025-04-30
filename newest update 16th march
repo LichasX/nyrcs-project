@@ -3,7 +3,6 @@ import random
 import os
 import time
 
-
 ROWS, COLS = 8, 8
 SIZE = 500
 CELL_SIZE = SIZE // COLS
@@ -12,7 +11,7 @@ WHITE, BLACK, CYAN, RED, BLUE, ORANGE, GREEN = (255, 255, 255), (0, 0, 0), (0, 1
 
 pygame.init()
 screen = pygame.display.set_mode((SIZE, SIZE))
-pygame.display.set_caption("Q bert")  
+pygame.display.set_caption("Q-bert")  
 clock = pygame.time.Clock()
 pygame.mixer.init()
 pygame.mixer.music.load("background.mp3")
@@ -31,32 +30,52 @@ bert_image = pygame.transform.scale(bert_image, (CELL_SIZE, CELL_SIZE))
 evil_image = pygame.image.load("evil.png")
 evil_image = pygame.transform.scale(evil_image, (CELL_SIZE, CELL_SIZE))
 
-SCORE_FILE = "leaderboard.txt"
+NORMAL_SCORE_FILE = "normal_leaderboard.txt"
+HARD_SCORE_FILE = "hard_leaderboard.txt"
 
-def read_leaderboard():
-    if os.path.exists(SCORE_FILE):
-        with open(SCORE_FILE, "r") as f:
-            return [line.strip() for line in f.readlines()]
-    return []
+def read_leaderboard(difficulty):
+    leaderboard = []
+    score_file = NORMAL_SCORE_FILE if difficulty == 'normal' else HARD_SCORE_FILE
+    if os.path.exists(score_file):
+        with open(score_file, "r") as f:
+            leaderboard = [float(line.strip()) for line in f.readlines()]
+    return leaderboard
 
-def write_score(time_taken):
-    leaderboard = read_leaderboard()
-    leaderboard.append(str(time_taken))
-    leaderboard = sorted(leaderboard, key=lambda x: float(x))[:5]
-    with open(SCORE_FILE, "w") as f:
+def write_score(time_taken, difficulty):
+    leaderboard = read_leaderboard(difficulty)
+    leaderboard.append(time_taken)
+    leaderboard = sorted(leaderboard)[:5]  # Keep top 5 scores
+
+    score_file = NORMAL_SCORE_FILE if difficulty == 'normal' else HARD_SCORE_FILE
+    with open(score_file, "w") as f:
         for score in leaderboard:
             f.write(f"{score}\n")
 
 def display_leaderboard():
-    leaderboard = read_leaderboard()
     font = pygame.font.Font(None, 36)
     screen.fill(WHITE)
 
     title_text = font.render("Leaderboard", True, BLACK)
     screen.blit(title_text, (SIZE // 2 - title_text.get_width() // 2, 20))
 
+    # Display normal difficulty leaderboard
+    normal_leaderboard = read_leaderboard('normal')
     y_offset = 80
-    for i, score in enumerate(leaderboard):
+    screen.blit(font.render("Normal Difficulty", True, BLACK), (SIZE // 2 - 100, y_offset))
+    y_offset += 40
+    for i, score in enumerate(normal_leaderboard):
+        score_text = font.render(f"{i+1}. {score} seconds", True, BLACK)
+        screen.blit(score_text, (SIZE // 2 - score_text.get_width() // 2, y_offset))
+        y_offset += 40
+
+    # Space between sections
+    y_offset += 20
+
+    # Display hard difficulty leaderboard
+    hard_leaderboard = read_leaderboard('hard')
+    screen.blit(font.render("Hard Difficulty", True, BLACK), (SIZE // 2 - 100, y_offset))
+    y_offset += 40
+    for i, score in enumerate(hard_leaderboard):
         score_text = font.render(f"{i+1}. {score} seconds", True, BLACK)
         screen.blit(score_text, (SIZE // 2 - score_text.get_width() // 2, y_offset))
         y_offset += 40
@@ -75,9 +94,6 @@ def display_leaderboard():
                     return "menu"
 
 def display_game_over(message, color, won=False):
-    """
-    gameover 
-    """
     screen.fill(BLACK)
     font = pygame.font.Font(None, 80)
     text = font.render(message, True, color)
@@ -131,18 +147,31 @@ def draw(player_pos, enemy_pos, enemy2_pos, enemy3_pos, visited, selected):
     pygame.display.flip()
 
 def starting_screen():
-    font = pygame.font.Font(None, 36)
+    font = pygame.font.Font(None, 36)  # Font for difficulty options
+    title_font = pygame.font.Font(None, 72)  # Larger font for "Q-bert"
+    
+    # Text for "Q-bert" and "Select Difficulty"
+    qbert_text = title_font.render("Q-bert", True, BLACK)
     title_text = font.render("Select Difficulty", True, BLACK)
     normal_text = font.render("Normal", True, BLACK)
     hard_text = font.render("Hard", True, BLACK)
 
     while True:
-        screen.fill(WHITE)
+        screen.fill(WHITE)  # Set the background to white
+        
+        # Display "Q-bert" at the top center
+        screen.blit(qbert_text, (SIZE // 2 - qbert_text.get_width() // 2, SIZE // 4 - 80))
+        
+        # Display "Select Difficulty" text
         screen.blit(title_text, (SIZE // 2 - title_text.get_width() // 2, SIZE // 4))
+        
+        # Display difficulty options
         screen.blit(normal_text, (SIZE // 2 - normal_text.get_width() // 2, SIZE // 2 - 50))
         screen.blit(hard_text, (SIZE // 2 - hard_text.get_width() // 2, SIZE // 2 + 50))
+        
         pygame.display.flip()
 
+        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -157,9 +186,6 @@ def starting_screen():
                         return 'hard'
 
 def move_enemy(pos, target, occupied_positions):
-    """
-    moves the enemy position 
-    """
     old_pos = pos[:]
     if pos[0] < target[0]:
         pos[0] += 1
@@ -169,24 +195,6 @@ def move_enemy(pos, target, occupied_positions):
         pos[1] += 1
     elif pos[1] > target[1]:
         pos[1] -= 1
-    if tuple(pos) in occupied_positions:
-        pos[:] = old_pos
-
-def move_enemy2(pos, target, occupied_positions):
-    old_pos = pos[:]
-    dx = 1 if pos[0] < target[0] else -1 if pos[0] > target[0] else 0
-    dy = 1 if pos[1] < target[1] else -1 if pos[1] > target[1] else 0
-    pos[0] += dx
-    pos[1] += dy
-    if tuple(pos) in occupied_positions:
-        pos[:] = old_pos
-
-def move_enemy3(pos, target, occupied_positions):
-    old_pos = pos[:]
-    dx = 1 if pos[0] < target[0] else -1 if pos[0] > target[0] else 0
-    dy = 1 if pos[1] < target[1] else -1 if pos[1] > target[1] else 0
-    pos[0] += dx
-    pos[1] += dy
     if tuple(pos) in occupied_positions:
         pos[:] = old_pos
 
@@ -214,9 +222,6 @@ def main():
             if event.type == pygame.QUIT:
                 return
             elif event.type == pygame.KEYDOWN:
-                """
-                moving player
-                """
                 moved = False
                 if event.key in [pygame.K_a, pygame.K_LEFT] and player_pos[0] > 0:
                     player_pos[0] -= 1
@@ -232,10 +237,6 @@ def main():
                     moved = True
                 if moved:
                     visited.add(tuple(player_pos))
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
-                cell = (x // CELL_SIZE, y // CELL_SIZE)
-                selected.discard(cell) if cell in selected else selected.add(cell)
             elif event.type == ENEMY_MOVE_EVENT:
                 occupied = set()
                 if enemy2_pos:
@@ -247,11 +248,11 @@ def main():
                 occupied = {tuple(enemy_pos)}
                 if enemy3_pos:
                     occupied.add(tuple(enemy3_pos))
-                move_enemy2(enemy2_pos, player_pos, occupied)
+                move_enemy(enemy2_pos, player_pos, occupied)
 
                 if difficulty == 'hard' and enemy3_pos:
                     occupied = {tuple(enemy_pos), tuple(enemy2_pos)}
-                    move_enemy3(enemy3_pos, player_pos, occupied)
+                    move_enemy(enemy3_pos, player_pos, occupied)
 
         result = check_game_over(player_pos, enemy_pos, enemy2_pos, enemy3_pos, visited)
         if result == "lose":
@@ -259,7 +260,7 @@ def main():
                 return
         elif result == "win":
             time_taken = round(time.time() - start_time, 2)
-            write_score(time_taken)
+            write_score(time_taken, difficulty)  # Save the score based on difficulty
             outcome = display_game_over(f"YOU WIN! Time: {time_taken}s", GREEN, won=True)
             if outcome == "leaderboard":
                 if display_leaderboard() == "menu":
@@ -272,4 +273,6 @@ def main():
 if __name__ == "__main__":
     while True:
         main()
+
+
 
