@@ -3,7 +3,8 @@ import random
 import os
 import time
 
-ROWS, COLS = 7, 7
+
+ROWS, COLS = 8, 8
 SIZE = 500
 CELL_SIZE = SIZE // COLS
 
@@ -11,7 +12,7 @@ WHITE, BLACK, CYAN, RED, BLUE, ORANGE, GREEN = (255, 255, 255), (0, 0, 0), (0, 1
 
 pygame.init()
 screen = pygame.display.set_mode((SIZE, SIZE))
-pygame.display.set_caption("7x7 Grid Board")
+pygame.display.set_caption("Q bert")  
 clock = pygame.time.Clock()
 pygame.mixer.init()
 pygame.mixer.music.load("background.mp3")
@@ -74,6 +75,9 @@ def display_leaderboard():
                     return "menu"
 
 def display_game_over(message, color, won=False):
+    """
+    gameover 
+    """
     screen.fill(BLACK)
     font = pygame.font.Font(None, 80)
     text = font.render(message, True, color)
@@ -152,7 +156,11 @@ def starting_screen():
                     if SIZE // 2 + 50 < y < SIZE // 2 + 100:
                         return 'hard'
 
-def move_enemy(pos, target):
+def move_enemy(pos, target, occupied_positions):
+    """
+    moves the enemy position 
+    """
+    old_pos = pos[:]
     if pos[0] < target[0]:
         pos[0] += 1
     elif pos[0] > target[0]:
@@ -161,30 +169,26 @@ def move_enemy(pos, target):
         pos[1] += 1
     elif pos[1] > target[1]:
         pos[1] -= 1
+    if tuple(pos) in occupied_positions:
+        pos[:] = old_pos
 
-def move_enemy2(pos, target):
-    if pos[0] < target[0] and pos[1] < target[1]:
-        pos[0] += 1
-        pos[1] += 1
-    elif pos[0] > target[0] and pos[1] < target[1]:
-        pos[0] -= 1
-        pos[1] += 1
-    elif pos[0] < target[0] and pos[1] > target[1]:
-        pos[0] += 1
-        pos[1] -= 1
-    elif pos[0] > target[0] and pos[1] > target[1]:
-        pos[0] -= 1
-        pos[1] -= 1
+def move_enemy2(pos, target, occupied_positions):
+    old_pos = pos[:]
+    dx = 1 if pos[0] < target[0] else -1 if pos[0] > target[0] else 0
+    dy = 1 if pos[1] < target[1] else -1 if pos[1] > target[1] else 0
+    pos[0] += dx
+    pos[1] += dy
+    if tuple(pos) in occupied_positions:
+        pos[:] = old_pos
 
-def move_enemy3(pos, target):
-    if pos[0] < target[0]:
-        pos[0] += 1
-    elif pos[0] > target[0]:
-        pos[0] -= 1
-    if pos[1] < target[1]:
-        pos[1] += 1
-    elif pos[1] > target[1]:
-        pos[1] -= 1
+def move_enemy3(pos, target, occupied_positions):
+    old_pos = pos[:]
+    dx = 1 if pos[0] < target[0] else -1 if pos[0] > target[0] else 0
+    dy = 1 if pos[1] < target[1] else -1 if pos[1] > target[1] else 0
+    pos[0] += dx
+    pos[1] += dy
+    if tuple(pos) in occupied_positions:
+        pos[:] = old_pos
 
 def check_game_over(player_pos, enemy_pos, enemy2_pos, enemy3_pos, visited):
     if len(visited) == ROWS * COLS:
@@ -195,10 +199,9 @@ def check_game_over(player_pos, enemy_pos, enemy2_pos, enemy3_pos, visited):
 
 def main():
     difficulty = starting_screen()
-
     player_pos = [3, 3]
     enemy_pos = [0, 0]
-    enemy2_pos = [6, 6]
+    enemy2_pos = [COLS - 1, ROWS - 1]
     enemy3_pos = [random.randint(0, COLS - 1), random.randint(0, ROWS - 1)] if difficulty == 'hard' else None
     selected = set()
     visited = {tuple(player_pos)}
@@ -210,47 +213,45 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
-
             elif event.type == pygame.KEYDOWN:
+                """
+                moving player
+                """
                 moved = False
-                if event.key == pygame.K_a and player_pos[0] > 0:
+                if event.key in [pygame.K_a, pygame.K_LEFT] and player_pos[0] > 0:
                     player_pos[0] -= 1
                     moved = True
-                elif event.key == pygame.K_d and player_pos[0] < COLS - 1:
+                elif event.key in [pygame.K_d, pygame.K_RIGHT] and player_pos[0] < COLS - 1:
                     player_pos[0] += 1
                     moved = True
-                elif event.key == pygame.K_w and player_pos[1] > 0:
+                elif event.key in [pygame.K_w, pygame.K_UP] and player_pos[1] > 0:
                     player_pos[1] -= 1
                     moved = True
-                elif event.key == pygame.K_s and player_pos[1] < ROWS - 1:
+                elif event.key in [pygame.K_s, pygame.K_DOWN] and player_pos[1] < ROWS - 1:
                     player_pos[1] += 1
                     moved = True
-                elif event.key == pygame.K_LEFT and player_pos[0] > 0:
-                    player_pos[0] -= 1
-                    moved = True
-                elif event.key == pygame.K_RIGHT and player_pos[0] < COLS - 1:
-                    player_pos[0] += 1
-                    moved = True
-                elif event.key == pygame.K_UP and player_pos[1] > 0:
-                    player_pos[1] -= 1
-                    moved = True
-                elif event.key == pygame.K_DOWN and player_pos[1] < ROWS - 1:
-                    player_pos[1] += 1
-                    moved = True
-
                 if moved:
                     visited.add(tuple(player_pos))
-
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = pygame.mouse.get_pos()
                 cell = (x // CELL_SIZE, y // CELL_SIZE)
                 selected.discard(cell) if cell in selected else selected.add(cell)
-
             elif event.type == ENEMY_MOVE_EVENT:
-                move_enemy(enemy_pos, player_pos)
-                move_enemy2(enemy2_pos, player_pos)
+                occupied = set()
+                if enemy2_pos:
+                    occupied.add(tuple(enemy2_pos))
+                if enemy3_pos:
+                    occupied.add(tuple(enemy3_pos))
+                move_enemy(enemy_pos, player_pos, occupied)
+
+                occupied = {tuple(enemy_pos)}
+                if enemy3_pos:
+                    occupied.add(tuple(enemy3_pos))
+                move_enemy2(enemy2_pos, player_pos, occupied)
+
                 if difficulty == 'hard' and enemy3_pos:
-                    move_enemy3(enemy3_pos, player_pos)
+                    occupied = {tuple(enemy_pos), tuple(enemy2_pos)}
+                    move_enemy3(enemy3_pos, player_pos, occupied)
 
         result = check_game_over(player_pos, enemy_pos, enemy2_pos, enemy3_pos, visited)
         if result == "lose":
@@ -271,3 +272,4 @@ def main():
 if __name__ == "__main__":
     while True:
         main()
+
