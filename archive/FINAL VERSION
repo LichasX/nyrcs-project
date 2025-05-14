@@ -19,7 +19,7 @@ pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(0.5)
 
 ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
-pygame.time.set_timer(ENEMY_MOVE_EVENT, 350)
+pygame.time.set_timer(ENEMY_MOVE_EVENT, 480)
 
 snake_image = pygame.image.load("snake.png")
 snake_image = pygame.transform.scale(snake_image, (CELL_SIZE, CELL_SIZE))
